@@ -1,7 +1,7 @@
 # spbot
 
 - Working with any linux
-- Auto Select Threading Numbers
+- Auto update Threading Numbers
 - Scanning multi ip Ranges 
 
 
