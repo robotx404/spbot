@@ -2,7 +2,7 @@
 
 - Need just standard library
 - Auto select MaxThreading
-- Waite if lose conn
+- Waiting if lose conn
 - Scanning multi ip Ranges
 
 
