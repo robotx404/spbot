@@ -1,6 +1,6 @@
 # spbot
 
-- Need just stander lib
+- Need just standard library
 - Auto select MaxThreading
 - Waite if lose conn
 - Scanning multi ip Ranges
