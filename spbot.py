@@ -1,3 +1,5 @@
+#!usr/bin/python
+
 import threading
 import socket
 import time
@@ -6,16 +8,43 @@ import argparse
 import sys
 
 
-
-
 def percentage(part, whole):
   eq = 100.0 * part/whole
   return round(eq,2)
+
+
+def lenRange(ir=None,txt=None):
+   total = 0
+   if txt:
+      txt = open(txt,'r')
+      while True:
+        ir = txt.readline().strip()
+        if len(ir) == 0:
+           break
+        ip1 = map(int, ir.split('-')[0].split('.'))
+        ip2 = map(int, ir.split('-')[1].split('.'))
+        dlta = ip2[0]-ip1[0], ip2[1]-ip1[1], ip2[2]-ip1[2], ip2[3]-ip1[3]
+        total += dlta[1] * 255 * 255 
+        total += dlta[2] * 255 
+        total += dlta[3]
+      txt.close()
+      return total 
+
+   elif ir:
+      ip1 = map(int, ir.split('-')[0].split('.'))
+      ip2 = map(int, ir.split('-')[1].split('.'))
+      dlta = ip2[0]-ip1[0], ip2[1]-ip1[1], ip2[2]-ip1[2], ip2[3]-ip1[3]
+      total += dlta[1] * 255 * 255 
+      total += dlta[2] * 255 
+      total += dlta[3]
+      return total 
+
 
 def ipRange(ir): # 192.168.0.1-192.168.0.200
    start_ip, end_ip = ir.split('-')[0], ir.split('-')[1]
    start = list(map(int, start_ip.split(".")))
    end = list(map(int, end_ip.split(".")))
+   iplen = lenRange(start,end)
    temp = start
    yield start_ip
    while temp != end:
@@ -26,14 +55,13 @@ def ipRange(ir): # 192.168.0.1-192.168.0.200
             temp[i-1] += 1
       yield ".".join(map(str, temp)) 
 
+
 def txtRange(txtFile):
    txt = open(txtFile,'r')
-   lines = txt.readlines()
-   txt.close()
-   for ir in lines:
-      if not '-' in ir:
-         return
-      ir = ir.strip()
+   while True :
+      ir = txt.readline().strip()
+      if len(ir) == 0 :
+         break
       start_ip, end_ip = ir.split('-')[0], ir.split('-')[1]
       start = list(map(int, start_ip.split(".")))
       end = list(map(int, end_ip.split(".")))
@@ -46,6 +74,19 @@ def txtRange(txtFile):
                temp[i] = 0
                temp[i-1] += 1
          yield ".".join(map(str, temp)) 
+   txt.close()
+
+def checkConn():
+   while True:
+      try:
+         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+         sock.settimeout(2)
+         sock.connect(('8.8.8.8',443))         
+         break  
+      except: 
+         pass
+      finally:
+         sock.close()
 
 class portScan:
 
@@ -55,12 +96,10 @@ class portScan:
       self.timeout = timeOut
       self.port = port
       if ipFile:
-         self.iparg = ipFile
-         self.total = len(list(txtRange(ipFile)))
+         self.total = lenRange(None,ipFile)
          self.iparg = txtRange(ipFile)
       elif ipLst:
-         self.iparg = ipLst
-         self.total = len(list(ipRange(ipLst)))
+         self.total = lenRange(ipLst)
          self.iparg = ipRange(ipLst)
       self.checked = 0
       self.opened = 0
@@ -73,16 +112,16 @@ class portScan:
         sock.connect((ip,self.port))
         self.log.debug(ip)
         self.opened += 1
-      except Exception as err: 
+      except : 
         pass
       finally:
         sock.close()
 
    def info(self):
        data = 'loading({}%)  {} of {} ips\n'.format(percentage(self.checked,self.total),self.checked,self.total)
-       data += 'Treadlive:{}  ipFound:{}'.format(threading.activeCount(),self.opened)
-       sys.stdout.write('\033[F'*2)
-       sys.stdout.write('\033[K'*2)
+       data += 'MaxTreadlive:{}  ipFound:{}\n'.format(threading.activeCount(),self.opened)
+       sys.stdout.write('\033[F'*3)
+       sys.stdout.write('\033[K'*3)
        print data
 
 
@@ -99,13 +138,12 @@ class portScan:
          except StopIteration:
             break
          except Exception as err:
-            time.sleep(0.1)
+            checkConn()     #sleep and block flooding or waite if lose conn
          finally:
             self.info()
 
       while threading.activeCount() != 1:
          time.sleep(0.2)
-
 
 
 def args():
@@ -129,4 +167,9 @@ def main():
       exit()
 
 if __name__ == '__main__':
-   main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('exiting...')
+        sys.exit(0)
+
