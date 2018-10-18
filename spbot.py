@@ -40,11 +40,10 @@ def lenRange(ir=None,txt=None):
       return total 
 
 
-def ipRange(ir): # 192.168.0.1-192.168.0.200
+def ipRange(ir):
    start_ip, end_ip = ir.split('-')[0], ir.split('-')[1]
    start = list(map(int, start_ip.split(".")))
    end = list(map(int, end_ip.split(".")))
-   iplen = lenRange(start,end)
    temp = start
    yield start_ip
    while temp != end:
