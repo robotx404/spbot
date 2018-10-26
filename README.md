@@ -1,9 +1,9 @@
 # spbot
 
-- Need just standard library
-- Auto select MaxThreading
-- Waiting if lose conn
-- Scanning multi ip Ranges
+- need just standard library
+- auto select max threading
+- auto thread up/down with speed conn
+- scanning multi ip ranges
 
 
 examples:
