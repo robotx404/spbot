@@ -84,28 +84,35 @@ def txtRange(txtFile):
    txt.close()
 
 
-PING_TIME = 0.01 # this lower value
+class ping:
+   def __init__(self, dns='8.8.8.8', port=443, buff=64):
+      self.stop = False
+      self.time = None
+      self.dns = dns
+      self.port = port
+      self.buff = buff
+   def start(self):
+      while not self.stop :
+         st = time.time()
+         try:
+            sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+            sock.connect((self.dns,self.port))
+            sock.send('0'*self.buff)
+            self.time = round((time.time()-st),4)
+         except socket.timeout:
+            self.time='timeout'
+         except Exception as err:
+            self.time='no connection'
+         finally:
+            sock.close()
+            time.sleep(3)
+   def thread(self):
+      t = threading.Thread(target=self.start)
+      t.start()
 
-
-def pingConn():
-   global PING_TIME
-   while True:
-      start = time.time()
-      try:
-         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-         sock.settimeout(5)
-         sock.connect(('8.8.8.8',443))
-         sec = time.time() - start
-      except socket.timeout:
-         sec = time.time() - start
-      except socket.error:
-         sec = 404
-      finally:
-         sock.close()
-         PING_TIME = round((sec) ,4)
+ping = ping()
 
 class portScan:
-
    def __init__(self,ipFile=None,ipLst=None,port=80,logName='log.txt',timeOut=3):
       self.log = logging.getLogger()
       logging.basicConfig(filename=logName,level=logging.DEBUG,format='')
@@ -119,7 +126,6 @@ class portScan:
          self.iparg = ipRange(ipLst)
       self.checked = 0
       self.opened = 0
-
    def scanner(self,ip):
       try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -133,11 +139,11 @@ class portScan:
         sock.close()
 
    def info(self):
-       data = 'loading({}%)  {} of {} ips\n'.format(percentage(self.checked,self.total),self.checked,self.total)
-       data += '-' * 30 +'\n'
-       data += 'MaxTreadlive:{}\n'.format(threading.activeCount())
-       data += 'ipFound:{}\n'.format(self.opened)
-       data += 'ping:{} sec\n'.format(PING_TIME)
+       data = '\nloading({}%)  {} of {} ips\n'.format(percentage(self.checked,self.total),self.checked,self.total)
+       data += '-' * 30 +'               \n'
+       data += 'MaxTreadlive:{}          \n'.format(threading.activeCount())
+       data += 'ipFound:{}               \n'.format(self.opened)
+       data += 'ping:{} sec              \n'.format(ping.time)
        sys.stdout.write('\033[F'*6)
        sys.stdout.write('\033[K'*6)
        print data
@@ -149,12 +155,11 @@ class portScan:
          try:
             if ip == None:
                ip = self.iparg.next()
-
-            while PING_TIME == 404:
+            while ping.time  > 100 or ping.time == None:
                print 'No Connection!'
-               time.sleep(5)
+               time.sleep(4)
 
-            time.sleep(PING_TIME * 0.1)
+            time.sleep(ping.time*0.1)
             bot = threading.Thread(target=self.scanner, args=(ip,))
             bot.start()
             self.checked += 1
@@ -162,13 +167,12 @@ class portScan:
          except StopIteration:
             break
          except Exception as why:
-            print why
+            pass
          finally:
             self.info()
+      ping.stop = True
       print 'Finishing...'
-      while threading.activeCount() > 4:
-         time.sleep(1)
-      exit(0)
+      time.sleep(5)
 
 
 def args():
@@ -184,10 +188,8 @@ def main():
    iprange = args().iprange
    port = args().port
    timeout = args().timeout
-
-   ping = threading.Thread(target=pingConn)
-   ping.start()
-
+   ping.thread()
+   time.sleep(1)
    if ipfile or iprange:
       attack = portScan(ipFile=ipfile,ipLst=iprange,port=port,timeOut=timeout)
       attack.start()
@@ -199,5 +201,7 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
+        ping.stop = True
         print('exiting...')
         sys.exit(0)
+
